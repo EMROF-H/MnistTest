@@ -100,4 +100,54 @@ public class CsvDataset
 
         return (label, pixels);
     }
+
+    public static (byte Label, byte[,] Pixels) ParseMnistLine2(ReadOnlySpan<char> span)
+    {
+        if (span.Length < CsvSample.MinLineDataLength)
+        {
+            throw new FormatException($"{CsvSample.DatasetName} csv line length {span.Length} is too small.");
+        }
+
+        if (span[1] != ',' || span[0] is < '0' or > '9')
+        {
+            throw new FormatException($"Malformed {CsvSample.DatasetName} csv line.");
+        }
+        var label = (byte)(span[0] - '0');
+        var pixels = new byte[CsvSample.Height, CsvSample.Width];
+
+        var field = 1;
+        int row = 0, col = 0;
+        var start = 2;
+        for (var i = 2; i <= span.Length; i++)
+        {
+            if (i != span.Length && span[i] != ',')
+            {
+                continue;
+            }
+
+            var token = span.Slice(start, i - start);
+            if (field > CsvSample.PixelCount)
+            {
+                throw new FormatException($"Too many fields of {CsvSample.DatasetName} csv line.");
+            }
+
+            pixels[row, col] = byte.Parse(token);
+            col++;
+            if (col == CsvSample.Width)
+            {
+                col = 0;
+                row++;
+            }
+
+            field++;
+            start = i + 1;
+        }
+
+        if (field != CsvSample.TotalPartCount)
+        {
+            throw new FormatException($"{CsvSample.DatasetName} csv line expected {CsvSample.TotalPartCount} fields, got {field}.");
+        }
+
+        return (label, pixels);
+    }
 }
