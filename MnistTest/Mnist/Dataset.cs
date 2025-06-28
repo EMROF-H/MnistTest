@@ -1,7 +1,4 @@
-﻿using System.Buffers;
-using System.IO;
-
-namespace MnistTest.Mnist;
+﻿namespace MnistTest.Mnist;
 
 public class CsvDataset
 {
