@@ -2,20 +2,6 @@
 
 namespace MnistTest.Mnist;
 
-internal readonly ref struct RentArray<T>(T[] array, int length)
-{
-    public Span<T> Span => array.AsSpan(0, Length);
-    public int Length { get; } = length;
-
-    public static RentArray<T> Create(int length)
-    {
-        var array = ArrayPool<T>.Shared.Rent(length);
-        return new RentArray<T>(array, length);
-    }
-
-    public void Dispose() => ArrayPool<T>.Shared.Return(array, clearArray: false);
-}
-
 public class CsvDataset
 {
     public List<CsvSample> Samples { get; } = new();
@@ -42,44 +28,54 @@ public class CsvDataset
     public static (byte Label, byte[,] Pixels) ParseMnistLine(string line)
     {
         ReadOnlySpan<char> span = line;
-        using var commaIndices = RentArray<int>.Create(CsvSample.TotalPartCount);
-        var commaCount = 0;
-        for (var i = 0; i < span.Length && commaCount < commaIndices.Length - 1; i++)
-        {
-            if (span[i] != ',')
-            {
-                continue;
-            }
-            commaIndices.Span[commaCount] = i;
-            commaCount++;
-        }
-        if (commaCount != CsvSample.PixelCount)
-        {
-            throw new FormatException(
-                $"Expected {CsvSample.TotalPartCount} values (1 label + {CsvSample.PixelCount} pixels), but found {commaCount + 1}.");
-        }
-        commaIndices.Span[^1] = span.Length;
 
-        // Parse label
-        var labelSlice = span[..commaIndices.Span[0]];
-        var label = byte.Parse(labelSlice);
+        var nextComma = span.IndexOf(',');
+        if (nextComma <= 0)
+        {
+            throw new FormatException("Invalid CSV: missing label field.");
+        }
 
-        // Parse pixels
+        var label = byte.Parse(span[..nextComma]);
+        span = span[(nextComma + 1)..]; // skip label + comma
+
+        // --- Parse pixels ---
         var pixels = new byte[CsvSample.Height, CsvSample.Width];
-        var index = 0;
+        var fieldCount = 1; // label counted
+
         for (var row = 0; row < CsvSample.Height; row++)
         {
             for (var col = 0; col < CsvSample.Width; col++)
             {
-                // var index = row * CsvSample.Width + col;
-                var start = commaIndices.Span[index] + 1;
-                var len = commaIndices.Span[index + 1] - start;
-                var value = byte.Parse(span.Slice(start, len));
-                pixels[row, col] = value;
+                if (span.IsEmpty)
+                {
+                    throw new FormatException($"Too few fields: expected {CsvSample.TotalPartCount}, found {fieldCount}.");
+                }
 
-                index++;
+                nextComma = span.IndexOf(',');
+                ReadOnlySpan<char> token;
+
+                if (nextComma >= 0)
+                {
+                    token = span[..nextComma];
+                    span = span[(nextComma + 1)..];
+                }
+                else
+                {
+                    // Last pixel field, no comma
+                    token = span;
+                    span = default;
+                }
+
+                pixels[row, col] = byte.Parse(token);
+                fieldCount++;
             }
         }
+
+        if (!span.IsEmpty)
+        {
+            throw new FormatException($"Too many fields: expected {CsvSample.TotalPartCount}, found more.");
+        }
+
         return (label, pixels);
     }
 }
