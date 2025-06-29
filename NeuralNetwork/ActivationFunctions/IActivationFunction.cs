@@ -2,5 +2,6 @@
 
 public partial interface IActivationFunction
 {
-    public static abstract double Apply(double x);
+    static abstract double Apply(double x);
+    static abstract double Derivative(double x);
 }
