@@ -33,6 +33,21 @@ class MnistNetwork
 
         // 输出层使用 Softmax 激活（这里我们先用 Sigmoid 模拟，Softmax 可以留作未来 vector 实现）
         Net.AddLayer(new DenseLayer<IActivationFunction.Sigmoid>(128, 10));
+
+        // // 输入层 → 隐藏层1
+        // Net.AddLayer(new DenseLayer<IActivationFunction.Relu>(784, 512));
+        // Net.AddLayer(new DropoutLayer(0.2));
+        //
+        // // 隐藏层2
+        // Net.AddLayer(new DenseLayer<IActivationFunction.Relu>(512, 256));
+        // Net.AddLayer(new DropoutLayer(0.2));
+        //
+        // // 隐藏层3
+        // Net.AddLayer(new DenseLayer<IActivationFunction.Relu>(256, 128));
+        // Net.AddLayer(new DropoutLayer(0.2));
+        //
+        // // 输出层使用 Softmax（建议实现 vector 版本）
+        // Net.AddLayer(new DenseLayer<IActivationFunction.Sigmoid>(128, 10));
     }
 
     private static Vector NormalizePixels(byte[,] pixels)
@@ -64,12 +79,12 @@ class MnistNetwork
 
         for (int epoch = 1; epoch <= epochs; epoch++)
         {
-            Train(dataset); // 调用单轮训练
+            TrainOnce(dataset, epoch); // 调用单轮训练
             epochBar.Tick($"Epoch {epoch}/{epochs}");
         }
     }
 
-    public void Train(CsvDataset dataset)
+    public void TrainOnce(CsvDataset dataset, int? thisTime = null)
     {
         var random = new Random();
         var samples = dataset
@@ -84,7 +99,7 @@ class MnistNetwork
             ProgressCharacter = '─'
         };
 
-        using var progress = new ProgressBar(samples.Length, "Training MNIST...", options);
+        using var progress = new ProgressBar(samples.Length, "Training MNIST ...", options);
         for (var i = 0; i < samples.Length; i++)
         {
             var sample = samples[i];
@@ -92,11 +107,11 @@ class MnistNetwork
             var expected = OneHot(sample.Label);
             Net.Train(input, expected, learningRate: 0.01);
 
-            progress.Tick($"Training {i + 1}/{samples.Length}");
+            progress.Tick($"Training{(thisTime is null ? "" : $" {thisTime.Value.ToString()} times")} {i + 1}/{samples.Length}");
         }
     }
     
-    public void Test(CsvDataset dataset)
+    public double Test(CsvDataset dataset)
     {
         var samples = dataset.Samples;
 
@@ -112,12 +127,13 @@ class MnistNetwork
             var match = predicted == actual;
             if (match) correct++;
 
-            Console.WriteLine($"[{i + 1}/{samples.Count}] Actual: {actual}, Predicted: {predicted}, {(match ? "Correct" : "Incorrect")}");
+            // Console.WriteLine($"[{i + 1}/{samples.Count}] Actual: {actual}, Predicted: {predicted}, {(match ? "Correct" : "Incorrect")}");
         }
 
         var accuracy = correct * 100.0 / samples.Count;
-        Console.WriteLine();
-        Console.WriteLine($"Total: {samples.Count}, Correct: {correct}, Accuracy: {accuracy:F2}%");
+        // Console.WriteLine();
+        // Console.WriteLine($"Total: {samples.Count}, Correct: {correct}, Accuracy: {accuracy:F2}%");
+        return accuracy;
     }
 
     public void Load(string path)
