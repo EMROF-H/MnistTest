@@ -2,9 +2,11 @@
 
 public partial interface IActivationFunction
 {
-    public class Relu : IActivationFunction
+    public sealed class Relu : IScalar<Relu>
     {
-        static double IActivationFunction.Apply(double x) => Math.Max(0, x);
-        static double IActivationFunction.Derivative(double x) => x > 0 ? 1.0 : 0.0;
+        private Relu() { }
+
+        public static double Apply(double x) => Math.Max(0, x);
+        public static double Derivative(double x) => x > 0 ? 1.0 : 0.0;
     }
 }

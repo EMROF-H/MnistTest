@@ -2,10 +2,12 @@
 
 public partial interface IActivationFunction
 {
-    public class Tanh : IActivationFunction
+    public sealed class Tanh : IScalar<Tanh>
     {
-        static double IActivationFunction.Apply(double x) => Math.Tanh(x);
-        static double IActivationFunction.Derivative(double x)
+        private Tanh() { }
+
+        public static double Apply(double x) => Math.Tanh(x);
+        public static double Derivative(double x)
         {
             var y = Math.Tanh(x);
             return 1 - y * y;

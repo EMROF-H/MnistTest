@@ -12,16 +12,13 @@ public class DenseLayer<TActivation>(int inputSize, int outputSize) : IParameter
     public int InputSize { get; } = inputSize;
     public int OutputSize { get; } = outputSize;
 
-    public Vector Forward(Vector input)
-    {
-        var raw = weights * input + biases;
-        return raw.Map(static x => TActivation.Apply(x));
-    }
+    public Vector Forward(Vector input) =>
+        TActivation.Apply(weights * input + biases);
 
     public Vector Forward(Vector input, ForwardContext context)
     {
         var z = weights * input + biases;
-        var a = z.Map(static x => TActivation.Apply(x));
+        var a = TActivation.Apply(z);
         context.Inputs[this] = input;
         context.PreActivations[this] = z;
         context.Activations[this] = a;
@@ -31,7 +28,7 @@ public class DenseLayer<TActivation>(int inputSize, int outputSize) : IParameter
     public Vector Backward(Vector gradient, ForwardContext context, double learningRate)
     {
         var z = context.PreActivations[this];
-        var aGrad = z.Map(static x => TActivation.Derivative(x));
+        var aGrad = TActivation.Derivative(z);
         var delta = aGrad.PointwiseMultiply(gradient);
 
         var input = context.Inputs[this];
@@ -51,14 +48,14 @@ public class DenseLayer<TActivation>(int inputSize, int outputSize) : IParameter
 
     public void Load(BinaryReader reader)
     {
-        for (int i = 0; i < OutputSize; i++)
+        for (var i = 0; i < OutputSize; i++)
         {
-            for (int j = 0; j < InputSize; j++)
+            for (var j = 0; j < InputSize; j++)
             {
                 weights[i, j] = reader.ReadDouble();
             }
         }
-        for (int i = 0; i < OutputSize; i++)
+        for (var i = 0; i < OutputSize; i++)
         {
             biases[i] = reader.ReadDouble();
         }
@@ -66,14 +63,14 @@ public class DenseLayer<TActivation>(int inputSize, int outputSize) : IParameter
 
     public void Save(BinaryWriter writer)
     {
-        for (int i = 0; i < OutputSize; i++)
+        for (var i = 0; i < OutputSize; i++)
         {
-            for (int j = 0; j < InputSize; j++)
+            for (var j = 0; j < InputSize; j++)
             {
                 writer.Write(weights[i, j]);
             }
         }
-        for (int i = 0; i < OutputSize; i++)
+        for (var i = 0; i < OutputSize; i++)
         {
             writer.Write(biases[i]);
         }

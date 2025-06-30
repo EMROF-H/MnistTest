@@ -2,9 +2,11 @@
 
 public partial interface IActivationFunction
 {
-    public class Identity : IActivationFunction
+    public sealed class Identity : IScalar<Identity>
     {
-        static double IActivationFunction.Apply(double x) => x;
-        static double IActivationFunction.Derivative(double x) => 1.0;
+        private Identity() { }
+
+        public static double Apply(double x) => x;
+        public static double Derivative(double x) => 1.0;
     }
 }
